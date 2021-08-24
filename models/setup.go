@@ -3,13 +3,15 @@ package models
 import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"os"
 )
 
 var DB *gorm.DB
 var err error
 
 func ConnectDatabase() {
-	database, err := gorm.Open("mysql", "writerxl:admin123@tcp(localhost:3306)/writerxl?charset=utf8&parseTime=True")
+
+	database, err := gorm.Open(os.Getenv("DB_DIALECT"), os.Getenv("DB_CONNECTION"))
 
 	if err != nil {
 		errMsg := "Failed to connect to the database "
