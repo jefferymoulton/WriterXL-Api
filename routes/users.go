@@ -13,7 +13,7 @@ type CreateUserInput struct {
 	Picture  string `json:"picture"`
 }
 
-type UpdateUserInput struct {
+type UserDTO struct {
 	Email    string `json:"email"`
 	Nickname string `json:"nickname"`
 	Name     string `json:"name"`
@@ -24,7 +24,7 @@ func LoadUserRoutes(e *gin.Engine) {
 	e.POST("/api/user", CreateUser)
 	e.GET("/api/user", FindUsers)
 
-	e.GET("/api/user/email/:email", FindUserByEmail)
+	e.GET("/api/user/email/:email", GetUserByEmail)
 }
 
 func CreateUser(c *gin.Context) {
@@ -44,7 +44,7 @@ func CreateUser(c *gin.Context) {
 	models.DB.Create(&user)
 
 	// TODO: Return an error if one occurs (duplicate entry, etc.)
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	c.JSON(http.StatusOK, mapDTO(user))
 }
 
 func FindUsers(c *gin.Context) {
@@ -54,7 +54,7 @@ func FindUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"users": users})
 }
 
-func FindUserByEmail(c *gin.Context) {
+func GetUserByEmail(c *gin.Context) {
 	var user models.User
 
 	if err := models.DB.Where("email = ?", c.Param("email")).First(&user).Error; err != nil {
@@ -62,7 +62,17 @@ func FindUserByEmail(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	c.JSON(http.StatusOK, mapDTO(user))
+}
+
+func mapDTO(user models.User) UserDTO {
+	var dto UserDTO
+	dto.Email = user.Email
+	dto.Name = user.Name
+	dto.Nickname = user.Nickname
+	dto.Picture = user.Picture
+
+	return dto
 }
 
 /*
@@ -74,7 +84,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	var input UpdateUserInput
+	var input UserDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
