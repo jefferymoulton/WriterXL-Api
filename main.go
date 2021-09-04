@@ -24,7 +24,7 @@ func main() {
 		},
 	}))
 
-	routes.LoadUserRoutes(r)
+	routes.LoadProfileRoutes(r)
 
 	if err := r.Run(); err != nil {
 		fmt.Printf("Startup service failed, err:%v\n", err)

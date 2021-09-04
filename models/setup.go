@@ -18,7 +18,7 @@ func ConnectDatabase() {
 		panic(errMsg + err.Error())
 	}
 
-	database.AutoMigrate(&User{})
+	database.AutoMigrate(&Profile{})
 
 	database.LogMode(true)
 
