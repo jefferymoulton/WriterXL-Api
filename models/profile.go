@@ -11,10 +11,10 @@ import (
 type Profile struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	Email       string             `bson:"email"`
-	Nickname    string             `bson:"nickname"`
-	Name        string             `bson:"name"`
-	Picture     string             `bson:"picture"`
-	Description string             `bson:"description"`
+	Nickname    string             `bson:"nickname,omitempty"`
+	Name        string             `bson:"name,omitempty"`
+	Picture     string             `bson:"picture,omitempty"`
+	Description string             `bson:"description,omitempty"`
 }
 
 func CreateProfile(profile Profile) error {
