@@ -1,66 +1,102 @@
 package models
 
+import (
+	"context"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"writerxl-api/data"
+)
+
 type Profile struct {
-	ID          uint   `json:"id" gorm:"primary_key"`
-	Email       string `json:"email" gorm:"unique"`
-	Nickname    string `json:"nickname"`
-	Name        string `json:"name"`
-	Picture     string `json:"picture"`
-	Description string `json:"description"`
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	Email       string             `bson:"email"`
+	Nickname    string             `bson:"nickname,omitempty"`
+	Name        string             `bson:"name,omitempty"`
+	Picture     string             `bson:"picture,omitempty"`
+	Description string             `bson:"description,omitempty"`
 }
 
-type ProfileInput struct {
-	Email       string `json:"email" binding:"required"`
-	Nickname    string `json:"nickname" binding:"required"`
-	Name        string `json:"name" binding:"required"`
-	Picture     string `json:"picture"`
-	Description string `json:"description"`
-}
-
-func CreateProfile(input ProfileInput) (Profile, error) {
-	profile := mapInput(input)
-
-	if err := DB.Create(&profile).Error; err != nil {
-		return Profile{}, err
-	}
-
-	return profile, nil
-}
-
-func UpdateProfile(input ProfileInput) (Profile, error) {
-	existing, err := GetProfileByEmail(input.Email)
-
+func CreateProfile(profile Profile) error {
+	client, err := data.GetMongoClient()
 	if err != nil {
-		return Profile{}, err
+		return err
 	}
 
-	profile := mapInput(input)
-	profile.ID = existing.ID
+	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
+	defer cancel()
 
-	if err := DB.Save(&profile).Error; err != nil {
-		return Profile{}, err
+	collection := client.Database(data.DB).Collection(data.PROFILE)
+
+	profile.ID = primitive.NewObjectID()
+	_, err = collection.InsertOne(ctx, profile)
+	if err != nil {
+		return err
 	}
 
-	return profile, nil
+	return nil
 }
 
-func GetProfileByEmail(email string) (Profile, error) {
-	var profile Profile
+func GetProfile(email string) (Profile, error) {
+	result := Profile{}
 
-	if err := DB.Where("email = ?", email).First(&profile).Error; err != nil {
-		return Profile{}, err
+	filter := bson.D{primitive.E{Key: "email", Value: email}}
+
+	client, err := data.GetMongoClient()
+	if err != nil {
+		return result, err
 	}
 
-	return profile, nil
+	collection := client.Database(data.DB).Collection(data.PROFILE)
+
+	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
+	defer cancel()
+
+	err = collection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }
 
-func mapInput(input ProfileInput) Profile {
-	var profile Profile
-	profile.Email = input.Email
-	profile.Name = input.Name
-	profile.Nickname = input.Nickname
-	profile.Picture = input.Picture
-	profile.Description = input.Description
+func UpsertProfile(profile Profile) (Profile, error) {
+	doc := Profile{}
 
-	return profile
+	client, err := data.GetMongoClient()
+	if err != nil {
+		return doc, err
+	}
+
+	collection := client.Database(data.DB).Collection(data.PROFILE)
+
+	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
+	defer cancel()
+
+	filter := bson.M{"email": profile.Email}
+
+	update := bson.M{
+		"$set": bson.M{
+			"nickname":    profile.Nickname,
+			"name":        profile.Name,
+			"picture":     profile.Picture,
+			"description": profile.Description,
+		},
+	}
+
+	after := options.After
+	upsert := false
+
+	opts := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
+	}
+
+	result := collection.FindOneAndUpdate(ctx, filter, update, &opts)
+	if result.Err() != nil {
+		return Profile{}, result.Err()
+	}
+	err = result.Decode(&doc)
+
+	return doc, err
 }

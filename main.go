@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"writerxl-api/models"
 	"writerxl-api/routes"
 )
 
 func main() {
 	r := gin.Default()
 
-	models.ConnectDatabase()
+	//models.ConnectDatabase()
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:4200"},
