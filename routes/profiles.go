@@ -7,14 +7,6 @@ import (
 	"writerxl-api/models"
 )
 
-type ProfileDTO struct {
-	Email       string `json:"email"`
-	Nickname    string `json:"nickname"`
-	Name        string `json:"name"`
-	Picture     string `json:"picture"`
-	Description string `json:"description"`
-}
-
 var path = "/api/profile"
 
 func LoadProfileRoutes(e *gin.Engine) {
@@ -25,50 +17,50 @@ func LoadProfileRoutes(e *gin.Engine) {
 }
 
 func CreateProfile(c *gin.Context) {
-	var input models.ProfileInput
+	var input models.Profile
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	profile, err := models.CreateProfile(input)
+	err := models.CreateProfile(input)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.MapDTO(profile))
-}
-
-func UpdateProfile(c *gin.Context) {
-	var input models.ProfileInput
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	profile, err := models.UpdateProfile(input)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.MapDTO(profile))
+	c.JSON(http.StatusCreated, "")
 }
 
 func GetProfile(c *gin.Context) {
 	var profile models.Profile
 
-	profile, err := models.GetProfileByEmail(c.Param("email"))
+	profile, err := models.GetProfile(c.Param("email"))
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.MapDTO(profile))
+	c.JSON(http.StatusOK, dto.MapProfileDTO(profile))
+}
+
+func UpdateProfile(c *gin.Context) {
+	var input models.Profile
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	profile, err := models.UpsertProfile(input)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.MapProfileDTO(profile))
 }

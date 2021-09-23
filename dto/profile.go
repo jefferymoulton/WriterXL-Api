@@ -10,13 +10,13 @@ type ProfileDTO struct {
 	Description string `json:"description"`
 }
 
-func MapDTO(user models.Profile) ProfileDTO {
+func MapProfileDTO(model models.Profile) ProfileDTO {
 	var dto ProfileDTO
-	dto.Email = user.Email
-	dto.Name = user.Name
-	dto.Nickname = user.Nickname
-	dto.Picture = user.Picture
-	dto.Description = user.Description
+	dto.Email = model.Email
+	dto.Name = model.Name
+	dto.Nickname = model.Nickname
+	dto.Picture = model.Picture
+	dto.Description = model.Description
 
 	return dto
 }
