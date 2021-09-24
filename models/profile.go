@@ -10,17 +10,17 @@ import (
 
 type Profile struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
-	Email       string             `bson:"email"`
-	Nickname    string             `bson:"nickname,omitempty"`
-	Name        string             `bson:"name,omitempty"`
-	Picture     string             `bson:"picture,omitempty"`
-	Description string             `bson:"description,omitempty"`
+	Email       string             `json:"email"`
+	Nickname    string             `json:"nickname,omitempty"`
+	Name        string             `json:"name,omitempty"`
+	Picture     string             `json:"picture,omitempty"`
+	Description string             `json:"description,omitempty"`
 }
 
-func CreateProfile(profile Profile) error {
+func CreateProfile(profile Profile) (Profile, error) {
 	client, err := data.GetMongoClient()
 	if err != nil {
-		return err
+		return Profile{}, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
@@ -31,10 +31,10 @@ func CreateProfile(profile Profile) error {
 	profile.ID = primitive.NewObjectID()
 	_, err = collection.InsertOne(ctx, profile)
 	if err != nil {
-		return err
+		return Profile{}, err
 	}
 
-	return nil
+	return GetProfile(profile.Email)
 }
 
 func GetProfile(email string) (Profile, error) {
@@ -60,7 +60,7 @@ func GetProfile(email string) (Profile, error) {
 	return result, nil
 }
 
-func UpsertProfile(profile Profile) (Profile, error) {
+func UpsertProfile(email string, profile Profile) (Profile, error) {
 	doc := Profile{}
 
 	client, err := data.GetMongoClient()
@@ -73,7 +73,7 @@ func UpsertProfile(profile Profile) (Profile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
 	defer cancel()
 
-	filter := bson.M{"email": profile.Email}
+	filter := bson.M{"email": email}
 
 	update := bson.M{
 		"$set": bson.M{
