@@ -9,18 +9,18 @@ import (
 )
 
 type Profile struct {
-	ID          primitive.ObjectID `bson:"_id" json:"id"`
-	Email       string             `json:"email"`
-	Nickname    string             `bson:"nickname,omitempty" json:"nickname"`
-	Name        string             `bson:"name,omitempty" json:"name"`
-	Picture     string             `bson:"picture,omitempty" json:"picture"`
-	Description string             `bson:"description,omitempty" json:"description,omitempty"`
+	ID          primitive.ObjectID `bson:"_id" json:"-"`
+	Email       string             `json:"email,omitempty"`
+	Nickname    string             `json:"nickname,omitempty"`
+	Name        string             `json:"name,omitempty"`
+	Picture     string             `json:"picture,omitempty"`
+	Description string             `json:"description,omitempty"`
 }
 
-func CreateProfile(profile Profile) error {
+func CreateProfile(profile Profile) (Profile, error) {
 	client, err := data.GetMongoClient()
 	if err != nil {
-		return err
+		return Profile{}, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
@@ -31,28 +31,15 @@ func CreateProfile(profile Profile) error {
 	profile.ID = primitive.NewObjectID()
 	_, err = collection.InsertOne(ctx, profile)
 	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GetProfileById(id string) (Profile, error) {
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != err {
 		return Profile{}, err
 	}
 
-	filter := bson.D{primitive.E{Key: "_id", Value: objectId}}
-	return getProfile(filter)
+	return GetProfileByEmail(profile.Email)
 }
 
 func GetProfileByEmail(email string) (Profile, error) {
 	filter := bson.D{primitive.E{Key: "email", Value: email}}
-	return getProfile(filter)
-}
 
-func getProfile(filter bson.D) (Profile, error) {
 	result := Profile{}
 
 	client, err := data.GetMongoClient()
@@ -73,13 +60,8 @@ func getProfile(filter bson.D) (Profile, error) {
 	return result, nil
 }
 
-func UpdateProfile(id string, profile Profile) (Profile, error) {
+func UpdateProfile(email string, profile Profile) (Profile, error) {
 	doc := Profile{}
-
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != err {
-		return doc, err
-	}
 
 	client, err := data.GetMongoClient()
 	if err != nil {
@@ -91,11 +73,10 @@ func UpdateProfile(id string, profile Profile) (Profile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
 	defer cancel()
 
-	filter := bson.M{"_id": objectId}
+	filter := bson.M{"email": email}
 
 	update := bson.M{
 		"$set": bson.M{
-			"email":       profile.Email,
 			"nickname":    profile.Nickname,
 			"name":        profile.Name,
 			"picture":     profile.Picture,

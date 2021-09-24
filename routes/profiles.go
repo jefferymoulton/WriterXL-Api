@@ -10,11 +10,8 @@ var path = "/api/profile"
 
 func LoadProfileRoutes(e *gin.Engine) {
 	e.POST(path, CreateProfile)
-
-	e.GET(path+"/:id", GetProfileById)
-	e.GET(path+"/email/:email", GetProfileByEmail)
-
-	e.PUT(path+"/:id", UpdateProfile)
+	e.GET(path+"/:email", GetProfileByEmail)
+	e.PUT(path+"/:email", UpdateProfile)
 }
 
 func CreateProfile(c *gin.Context) {
@@ -25,26 +22,13 @@ func CreateProfile(c *gin.Context) {
 		return
 	}
 
-	err := models.CreateProfile(input)
-
+	profile, err := models.CreateProfile(input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, "")
-}
-
-func GetProfileById(c *gin.Context) {
-	var profile models.Profile
-
-	profile, err := models.GetProfileById(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, profile)
+	c.JSON(http.StatusCreated, profile)
 }
 
 func GetProfileByEmail(c *gin.Context) {
@@ -67,7 +51,7 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	profile, err := models.UpdateProfile(c.Param("id"), input)
+	profile, err := models.UpdateProfile(c.Param("email"), input)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
