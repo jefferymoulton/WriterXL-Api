@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"writerxl-api/dto"
 	"writerxl-api/models"
 )
 
@@ -11,9 +10,11 @@ var path = "/api/profile"
 
 func LoadProfileRoutes(e *gin.Engine) {
 	e.POST(path, CreateProfile)
-	e.PUT(path, UpdateProfile)
 
-	e.GET(path+"/:email", GetProfile)
+	e.GET(path+"/:id", GetProfileById)
+	e.GET(path+"/email/:email", GetProfileByEmail)
+
+	e.PUT(path+"/:id", UpdateProfile)
 }
 
 func CreateProfile(c *gin.Context) {
@@ -34,17 +35,28 @@ func CreateProfile(c *gin.Context) {
 	c.JSON(http.StatusCreated, "")
 }
 
-func GetProfile(c *gin.Context) {
+func GetProfileById(c *gin.Context) {
 	var profile models.Profile
 
-	profile, err := models.GetProfile(c.Param("email"))
-
+	profile, err := models.GetProfileById(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.MapProfileDTO(profile))
+	c.JSON(http.StatusOK, profile)
+}
+
+func GetProfileByEmail(c *gin.Context) {
+	var profile models.Profile
+
+	profile, err := models.GetProfileByEmail(c.Param("email"))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
 }
 
 func UpdateProfile(c *gin.Context) {
@@ -55,12 +67,12 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	profile, err := models.UpsertProfile(input)
+	profile, err := models.UpdateProfile(c.Param("id"), input)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.MapProfileDTO(profile))
+	c.JSON(http.StatusOK, profile)
 }
