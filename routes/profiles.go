@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"writerxl-api/dto"
 	"writerxl-api/models"
 )
 
@@ -11,9 +10,8 @@ var path = "/api/profile"
 
 func LoadProfileRoutes(e *gin.Engine) {
 	e.POST(path, CreateProfile)
-	e.PUT(path, UpdateProfile)
-
 	e.GET(path+"/:email", GetProfile)
+	e.PUT(path+"/:email", UpdateProfile)
 }
 
 func CreateProfile(c *gin.Context) {
@@ -24,14 +22,14 @@ func CreateProfile(c *gin.Context) {
 		return
 	}
 
-	err := models.CreateProfile(input)
+	profile, err := models.CreateProfile(input)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, "")
+	c.JSON(http.StatusCreated, profile)
 }
 
 func GetProfile(c *gin.Context) {
@@ -44,7 +42,7 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.MapProfileDTO(profile))
+	c.JSON(http.StatusOK, profile)
 }
 
 func UpdateProfile(c *gin.Context) {
@@ -55,12 +53,12 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	profile, err := models.UpsertProfile(input)
+	profile, err := models.UpsertProfile(c.Param("email"), input)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.MapProfileDTO(profile))
+	c.JSON(http.StatusOK, profile)
 }
