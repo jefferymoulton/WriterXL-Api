@@ -11,10 +11,13 @@ var path = "/api/profile"
 func LoadProfileRoutes(e *gin.Engine) {
 	e.POST(path, CreateProfile)
 
-	e.GET(path+"/:email", GetProfile)
-	e.GET(path+"/id/:id", GetProfile)
+	e.GET(path+"/email/:email", GetProfile)
+	e.GET(path+"/:id", GetProfile)
 
-	e.PUT(path+"/:email", UpdateProfile)
+	e.PUT(path+"/:id", UpdateProfile)
+	e.PUT(path+"/activate/:id", ActivateProfile)
+
+	e.DELETE(path+"/:id", DeactivateProfile)
 }
 
 func CreateProfile(c *gin.Context) {
@@ -72,7 +75,7 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	profile, err := models.UpsertProfile(c.Param("email"), input)
+	profile, err := models.UpsertProfile(c.Param("id"), input)
 	if err != nil && err.Error() == "mongo: no documents in result" {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed. Profile was not found"})
 		return
@@ -82,4 +85,24 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profile)
+}
+
+func ActivateProfile(c *gin.Context) {
+	err := models.ActivateProfile(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, "")
+}
+
+func DeactivateProfile(c *gin.Context) {
+	err := models.DeactivateProfile(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, "")
 }

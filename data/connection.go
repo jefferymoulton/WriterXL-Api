@@ -15,7 +15,7 @@ var mongoOnce sync.Once
 
 var col *mongo.Collection
 
-var DefaultTimeout = 10 * time.Second
+var DefaultTimeout = 100000 * time.Second
 
 const (
 	DB      = "writerxl"

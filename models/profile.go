@@ -17,6 +17,7 @@ type Profile struct {
 	Name        string             `json:"name,omitempty"`
 	Picture     string             `json:"picture,omitempty"`
 	Description string             `json:"description,omitempty"`
+	Active      bool               `json:"active"`
 	CreatedDate time.Time          `json:"createdDate"`
 }
 
@@ -32,6 +33,7 @@ func CreateProfile(profile Profile) (Profile, error) {
 	collection := client.Database(data.DB).Collection(data.PROFILE)
 
 	profile.ID = primitive.NewObjectID()
+	profile.Active = true
 	profile.CreatedDate = time.Now()
 
 	_, err = collection.InsertOne(ctx, profile)
@@ -83,7 +85,42 @@ func getProfile(filter bson.D) (Profile, error) {
 	return result, nil
 }
 
-func UpsertProfile(email string, profile Profile) (Profile, error) {
+func UpsertProfile(id string, profile Profile) (Profile, error) {
+	update := bson.M{
+		"$set": bson.M{
+			"nickname":    profile.Nickname,
+			"name":        profile.Name,
+			"picture":     profile.Picture,
+			"description": profile.Description,
+		},
+	}
+
+	return updateProfile(id, update)
+}
+
+func ActivateProfile(id string) error {
+	update := bson.M{
+		"$set": bson.M{
+			"active": true,
+		},
+	}
+
+	_, err := updateProfile(id, update)
+	return err
+}
+
+func DeactivateProfile(id string) error {
+	update := bson.M{
+		"$set": bson.M{
+			"active": false,
+		},
+	}
+
+	_, err := updateProfile(id, update)
+	return err
+}
+
+func updateProfile(id string, update bson.M) (Profile, error) {
 	doc := Profile{}
 
 	client, err := data.GetMongoClient()
@@ -96,16 +133,11 @@ func UpsertProfile(email string, profile Profile) (Profile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), data.DefaultTimeout)
 	defer cancel()
 
-	filter := bson.M{"email": email}
-
-	update := bson.M{
-		"$set": bson.M{
-			"nickname":    profile.Nickname,
-			"name":        profile.Name,
-			"picture":     profile.Picture,
-			"description": profile.Description,
-		},
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return Profile{}, err
 	}
+	filter := bson.D{primitive.E{Key: "_id", Value: objectId}}
 
 	after := options.After
 	upsert := false
