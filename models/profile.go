@@ -5,6 +5,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"net/mail"
+	"time"
 	"writerxl-api/data"
 )
 
@@ -15,6 +17,7 @@ type Profile struct {
 	Name        string             `json:"name,omitempty"`
 	Picture     string             `json:"picture,omitempty"`
 	Description string             `json:"description,omitempty"`
+	CreatedDate time.Time          `json:"createdDate"`
 }
 
 func CreateProfile(profile Profile) (Profile, error) {
@@ -29,18 +32,38 @@ func CreateProfile(profile Profile) (Profile, error) {
 	collection := client.Database(data.DB).Collection(data.PROFILE)
 
 	profile.ID = primitive.NewObjectID()
+	profile.CreatedDate = time.Now()
+
 	_, err = collection.InsertOne(ctx, profile)
 	if err != nil {
 		return Profile{}, err
 	}
 
-	return GetProfile(profile.Email)
+	return GetProfileByEmail(profile.Email)
 }
 
-func GetProfile(email string) (Profile, error) {
-	result := Profile{}
+func GetProfileByEmail(email string) (Profile, error) {
+	_, err := mail.ParseAddress(email)
+	if err != nil {
+		return Profile{}, err
+	}
 
 	filter := bson.D{primitive.E{Key: "email", Value: email}}
+	return getProfile(filter)
+}
+
+func GetProfileById(id string) (Profile, error) {
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return Profile{}, err
+	}
+
+	filter := bson.D{primitive.E{Key: "_id", Value: objectId}}
+	return getProfile(filter)
+}
+
+func getProfile(filter bson.D) (Profile, error) {
+	result := Profile{}
 
 	client, err := data.GetMongoClient()
 	if err != nil {
