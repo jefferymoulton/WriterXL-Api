@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"net/mail"
 	"writerxl-api/models"
 )
 
@@ -46,17 +45,20 @@ func GetProfile(c *gin.Context) {
 	if id != "" {
 		profile, err = models.GetProfileById(id)
 	} else {
-		_, err := mail.ParseAddress(email)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email address."})
-			return
-		}
-
 		profile, err = models.GetProfileByEmail(email)
 	}
+
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
-		return
+		if err.Error() == "the provided hex string is not a valid ObjectID" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID."})
+			return
+		} else if err.Error() == "mail: no angle-addr" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email address."})
+			return
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, profile)
@@ -71,8 +73,10 @@ func UpdateProfile(c *gin.Context) {
 	}
 
 	profile, err := models.UpsertProfile(c.Param("email"), input)
-
-	if err != nil {
+	if err != nil && err.Error() == "mongo: no documents in result" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed. Profile was not found"})
+		return
+	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
