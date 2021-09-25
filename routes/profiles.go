@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/mail"
 	"writerxl-api/models"
 )
 
@@ -10,7 +11,10 @@ var path = "/api/profile"
 
 func LoadProfileRoutes(e *gin.Engine) {
 	e.POST(path, CreateProfile)
+
 	e.GET(path+"/:email", GetProfile)
+	e.GET(path+"/id/:id", GetProfile)
+
 	e.PUT(path+"/:email", UpdateProfile)
 }
 
@@ -34,9 +38,22 @@ func CreateProfile(c *gin.Context) {
 
 func GetProfile(c *gin.Context) {
 	var profile models.Profile
+	var err error
 
-	profile, err := models.GetProfile(c.Param("email"))
+	email := c.Param("email")
+	id := c.Param("id")
 
+	if id != "" {
+		profile, err = models.GetProfileById(id)
+	} else {
+		_, err := mail.ParseAddress(email)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email address."})
+			return
+		}
+
+		profile, err = models.GetProfileByEmail(email)
+	}
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Profile was not found"})
 		return
